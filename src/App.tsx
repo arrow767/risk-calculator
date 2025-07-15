@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useEffect, useState } from 'react'
 import TickerDropdown from './components/TickerDropdown'
 import SettingsDrawer from './components/SettingsDrawer'
@@ -21,7 +20,9 @@ export default function App() {
   const [coefInput, setCoefInput] = useState(() => localStorage.getItem('coef') || '1.1')
   const [params, setParams] = useState<IndicatorParams>(() => {
     const p = localStorage.getItem('params')
-    return p ? JSON.parse(p) : { L: 300, k: 1.0, limitMul: 10.0 }
+    return p
+      ? JSON.parse(p)
+      : { L: 300, k: 1.0, limitMul: 10.0 }
   })
 
   const [thr, setThr] = useState(0)
@@ -35,21 +36,18 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [notif, setNotif] = useState<string | null>(null)
 
-  // Persist state
   useEffect(() => { localStorage.setItem('symbol', symbol) }, [symbol])
   useEffect(() => { localStorage.setItem('risk', riskInput) }, [riskInput])
   useEffect(() => { localStorage.setItem('coef', coefInput) }, [coefInput])
   useEffect(() => { localStorage.setItem('params', JSON.stringify(params)) }, [params])
   useEffect(() => { localStorage.setItem('history', JSON.stringify(history)) }, [history])
 
-  // Auto-hide notifications
   useEffect(() => {
     if (!notif) return
     const t = setTimeout(() => setNotif(null), 3000)
     return () => clearTimeout(t)
   }, [notif])
 
-  // Fetch thresholds
   useEffect(() => {
     if (!symbol) return
     setLoading(true)
@@ -65,11 +63,10 @@ export default function App() {
   const coef = parseFloat(coefInput.replace(',', '.')) || 0
 
   const thrCoef = thr * coef
-  const thr85 = thr * 0.85
+  const thr85 = thr * 1 * 0.85
   const thr2_85 = thr * 2 * 0.85
   const volume = thrCoef ? (risk * 100) / thrCoef : 0
 
-  // Save to history
   const saveEntry = () => {
     if (!symbol) return
     const entry: HistoryEntry = {
@@ -84,120 +81,105 @@ export default function App() {
       volume
     }
     setHistory([entry, ...history])
-    setNotif('✔ Saved!')
+    setNotif('Entry saved')
   }
+
   const handleDelete = (ts: number) => {
     setHistory(history.filter(h => h.ts !== ts))
-    setNotif('🗑 Deleted')
+    setNotif('Entry deleted')
   }
   const handleClearAll = () => {
     setHistory([])
-    setNotif('🗑 All cleared')
+    setNotif('History cleared')
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Notification */}
+    <div className="min-h-screen bg-background">
       {notif && (
-        <div className="fixed inset-x-0 top-5 flex justify-center z-50 pointer-events-none">
-          <div className="bg-green-500 text-white px-5 py-2 rounded-full shadow-lg pointer-events-auto">
+        <div className="fixed top-4 inset-x-0 flex justify-center z-50 pointer-events-none">
+          <div className="bg-green-600 text-white px-4 py-2 rounded shadow pointer-events-auto">
             {notif}
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <header className="flex items-center justify-between bg-white shadow px-6 py-4">
-        <Button variant="ghost" className="text-gray-600" onClick={() => setHistoryOpen(true)}>
+      <header className="flex items-center justify-between p-4 bg-primary text-primary-foreground">
+        <Button variant="ghost" onClick={() => setHistoryOpen(true)}>
           <Menu className="h-6 w-6" />
         </Button>
-        <h1 className="text-2xl font-extrabold text-gray-800">Risk Calculator</h1>
-        <Button variant="ghost" className="text-gray-600" onClick={() => setSettingsOpen(true)}>
+        <h1 className="text-lg font-semibold">Risk Calculator</h1>
+        <Button variant="ghost" onClick={() => setSettingsOpen(true)}>
           <SettingsIcon className="h-6 w-6" />
         </Button>
       </header>
 
-      {/* Content */}
-      <main className="flex-1 overflow-auto py-8">
-        <div className="max-w-md mx-auto space-y-8 px-4">
-          {/* Inputs */}
-          <Card className="bg-white shadow-lg rounded-2xl p-6">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">Inputs</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <TickerDropdown value={symbol} onChange={setSymbol} />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="block text-sm font-medium text-gray-700">Risk (USDT)</Label>
-                  <Input
-                    className="mt-1 w-full"
-                    type="text"
-                    inputMode="decimal"
-                    value={riskInput}
-                    onChange={e => setRiskInput(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="block text-sm font-medium text-gray-700">Coefficient</Label>
-                  <Input
-                    className="mt-1 w-full"
-                    type="text"
-                    inputMode="decimal"
-                    value={coefInput}
-                    onChange={e => setCoefInput(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <main className="p-4 max-w-sm mx-auto space-y-6">
+        <TickerDropdown value={symbol} onChange={setSymbol} />
 
-          {/* Results */}
-          <Card className="bg-white shadow-lg rounded-2xl p-6">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">Results</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {loading ? (
-                <p className="text-center text-gray-500 animate-pulse">Loading...</p>
-              ) : symbol ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-500">NATR</p>
-                    <p className="text-xl font-semibold text-gray-800">{percentFormatter(thr)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-500">NATR×coef</p>
-                    <p className="text-xl font-semibold text-gray-800">{percentFormatter(thrCoef)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-500">×1×0.85</p>
-                    <p className="text-xl font-semibold text-gray-800">{percentFormatter(thr85)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-500">×2×0.85</p>
-                    <p className="text-xl font-semibold text-gray-800">{percentFormatter(thr2_85)}</p>
-                  </div>
-                  <div className="col-span-2 space-y-1">
-                    <p className="text-sm text-gray-500">Volume</p>
-                    <p className="text-xl font-semibold text-gray-800">{intFormatter.format(volume)}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-center text-gray-400">Select a ticker above to see results.</p>
-              )}
-              {symbol && !loading && (
-                <Button className="w-full mt-4" size="lg">
-                  Save to History
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+        <div className="space-y-4">
+          <div>
+            <Label>Risk (USDT)</Label>
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={riskInput}
+              onChange={e => setRiskInput(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Coefficient</Label>
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={coefInput}
+              onChange={e => setCoefInput(e.target.value)}
+            />
+          </div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Results</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loading ? (
+              <p className="italic">Loading thresholds…</p>
+            ) : symbol ? (
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <dt className="text-sm text-muted-foreground">NATR:</dt>
+                <dd className="text-lg font-medium">{percentFormatter(thr)}</dd>
+
+                <dt className="text-sm text-muted-foreground">NATR×coef:</dt>
+                <dd className="text-lg font-medium">{percentFormatter(thrCoef)}</dd>
+
+                <dt className="text-sm text-muted-foreground">×1×0.85:</dt>
+                <dd className="text-lg font-medium">{percentFormatter(thr85)}</dd>
+
+                <dt className="text-sm text-muted-foreground">×2×0.85:</dt>
+                <dd className="text-lg font-medium">{percentFormatter(thr2_85)}</dd>
+
+                <dt className="text-sm text-muted-foreground">Volume:</dt>
+                <dd className="text-lg font-medium">{intFormatter.format(volume)}</dd>
+              </dl>
+            ) : (
+              <p className="italic">Select ticker above</p>
+            )}
+
+            {symbol && !loading && (
+              <Button className="w-full mt-4" onClick={saveEntry}>
+                Save to History
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       </main>
 
-      {/* Drawers */}
-      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} params={params} setParams={setParams} />
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        params={params}
+        setParams={setParams}
+      />
       <HistoryDrawer
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
