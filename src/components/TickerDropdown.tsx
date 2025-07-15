@@ -55,11 +55,11 @@ export default function TickerDropdown({
           {value || 'Search ticker...'}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+      <PopoverContent className="w-full p-2">
         <Command>
           <CommandInput
             placeholder="Search ticker..."
-            className="w-full px-4 py-2"
+            className="w-full px-16 py-4"
             onInput={e => {
               const input = e.currentTarget
               const mapped = mapLayout(input.value)
