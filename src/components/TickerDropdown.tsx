@@ -21,6 +21,22 @@ export default function TickerDropdown({
   const [all, setAll] = useState<string[]>([])
   const [open, setOpen] = useState(false)
 
+  // Маппинг русских букв на английскую раскладку
+  const rusToEng: Record<string, string> = {
+    'й':'q','ц':'w','у':'e','к':'r','е':'t','н':'y','г':'u','ш':'i','щ':'o','з':'p','х':'[','ъ':']',
+    'ф':'a','ы':'s','в':'d','а':'f','п':'g','р':'h','о':'j','л':'k','д':'l','ж':';','э':"'",
+    'я':'z','ч':'x','с':'c','м':'v','и':'b','т':'n','ь':'m','б':',','ю':'.'
+  }
+  const mapLayout = (str: string) =>
+    str.split('').map(ch => {
+      const low = ch.toLowerCase()
+      if (rusToEng[low]) {
+        const eng = rusToEng[low]
+        return ch === low ? eng : eng.toUpperCase()
+      }
+      return ch
+    }).join('')
+
   useEffect(() => {
     axios
       .get('https://fapi.binance.com/fapi/v1/exchangeInfo')
@@ -44,20 +60,34 @@ export default function TickerDropdown({
           <CommandInput
             placeholder="Search ticker..."
             className="w-full px-4 py-2"
+            onInput={e => {
+              const input = e.currentTarget
+              const mapped = mapLayout(input.value)
+              if (mapped !== input.value) {
+                input.value = mapped
+              }
+            }}
           />
-          <CommandList>
+          <CommandList className="max-h-60 overflow-auto">
             <CommandEmpty>No results.</CommandEmpty>
-            {all.map(sym => (
-              <CommandItem
-                key={sym}
-                onSelect={current => {
-                  onChange(current)
-                  setOpen(false)
-                }}
-              >
-                {sym}
-              </CommandItem>
-            ))}
+            {all
+              .filter(sym =>
+                sym.toLowerCase().includes(
+                  // используем уже преобразованное значение инпута
+                  (document.querySelector('input[placeholder="Search ticker..."]') as HTMLInputElement)?.value.toLowerCase() || ''
+                )
+              )
+              .map(sym => (
+                <CommandItem
+                  key={sym}
+                  onSelect={current => {
+                    onChange(current)
+                    setOpen(false)
+                  }}
+                >
+                  {sym}
+                </CommandItem>
+              ))}
           </CommandList>
         </Command>
       </PopoverContent>

@@ -8,26 +8,21 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Menu, Settings } from 'lucide-react'
+import { Menu, Settings as SettingsIcon } from 'lucide-react'
 
-// Локаль для форматирования “100 000 000”
-const volumeFormatter = new Intl.NumberFormat('ru-RU', {
-  maximumFractionDigits: 0
-})
-
-// Помощник для процентных значений с 4 знаками после запятой
-function formatPercent(val: number) {
-  return `${val.toFixed(4)}%`
-}
+// форматтер для целых чисел
+const intFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
+// форматтер процентов
+const percentFormatter = (v: number) => `${v.toFixed(4)}%`
 
 export default function App() {
   const [symbol, setSymbol] = useState('')
-  const [risk, setRisk] = useState(() => +localStorage.getItem('risk')! || 10000)
-  const [coef, setCoef] = useState(() => +localStorage.getItem('coef')! || 1.1)
+  const [riskInput, setRiskInput] = useState(() => localStorage.getItem('risk') || '10000')
+  const [coefInput, setCoefInput] = useState(() => localStorage.getItem('coef') || '1.1')
   const [params, setParams] = useState<IndicatorParams>(() => {
-    const stored = localStorage.getItem('params')
-    return stored
-      ? JSON.parse(stored)
+    const s = localStorage.getItem('params')
+    return s
+      ? JSON.parse(s)
       : { L: 300, k: 1.0, limitMul: 10.0, smoothType: 'SMA', multiplier85: 0.85 }
   })
   const [natr, setNatr] = useState(0)
@@ -38,14 +33,22 @@ export default function App() {
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [notif, setNotif] = useState<string | null>(null)
+
+  // авто‑скрытие уведомления
+  useEffect(() => {
+    if (!notif) return
+    const t = setTimeout(() => setNotif(null), 3000)
+    return () => clearTimeout(t)
+  }, [notif])
 
   // persist
-  useEffect(() => localStorage.setItem('risk', risk.toString()), [risk])
-  useEffect(() => localStorage.setItem('coef', coef.toString()), [coef])
+  useEffect(() => localStorage.setItem('risk', riskInput), [riskInput])
+  useEffect(() => localStorage.setItem('coef', coefInput), [coefInput])
   useEffect(() => localStorage.setItem('params', JSON.stringify(params)), [params])
   useEffect(() => localStorage.setItem('history', JSON.stringify(history)), [history])
 
-  // загрузка NATR
+  // fetch NATR
   useEffect(() => {
     if (!symbol) return
     setLoading(true)
@@ -55,28 +58,60 @@ export default function App() {
   }, [symbol, params])
 
   // расчёты
+  const risk = parseFloat(riskInput) || 0
+  const coef = parseFloat(coefInput) || 0
   const thrCoef = natr * coef
   const thr85 = thrCoef * params.multiplier85
   const thr2_85 = thrCoef * 2 * params.multiplier85
-  const volume = risk * 100 / thrCoef
+  const volume = thrCoef ? (risk * 100) / thrCoef : 0
 
+  // save
   const saveEntry = () => {
     if (!symbol) return
-    setHistory([
-      ...history,
-      { ts: Date.now(), symbol, risk, coef, natr, thrCoef, thr85, thr2_85, volume }
-    ])
+    const entry: HistoryEntry = {
+      ts: Date.now(),
+      symbol,
+      risk,
+      coef,
+      natr,
+      thrCoef,
+      thr85,
+      thr2_85,
+      volume
+    }
+    setHistory([...history, entry])
+    setNotif('Entry saved')
+  }
+
+  // delete one
+  const handleDelete = (ts: number) => {
+    setHistory(history.filter(h => h.ts !== ts))
+    setNotif('Entry deleted')
+  }
+  // clear all
+  const handleClearAll = () => {
+    setHistory([])
+    setNotif('History cleared')
   }
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Notification */}
+      {notif && (
+        <div className="fixed top-4 inset-x-0 flex justify-center z-50 pointer-events-none">
+          <div className="bg-green-600 text-white px-4 py-2 rounded shadow pointer-events-auto">
+            {notif}
+          </div>
+        </div>
+      )}
+
       <header className="flex items-center justify-between p-4 bg-primary text-primary-foreground">
         <Button variant="ghost" onClick={() => setHistoryOpen(true)}>
           <Menu className="h-6 w-6" />
         </Button>
         <h1 className="text-lg font-semibold">Risk Calculator</h1>
         <Button variant="ghost" onClick={() => setSettingsOpen(true)}>
-          <Settings className="h-6 w-6" />
+          <SettingsIcon className="h-6 w-6" />
         </Button>
       </header>
 
@@ -87,19 +122,24 @@ export default function App() {
           <div>
             <Label>Risk (USDT)</Label>
             <Input
-              type="number"
-              value={risk}
-              onChange={e => setRisk(+e.target.value)}
+              type="text"
+              inputMode="decimal"
+              value={riskInput}
+              onChange={e => setRiskInput(e.target.value)}
             />
+            <p className="text-sm text-muted-foreground mt-1">
+            </p>
           </div>
           <div>
             <Label>Coefficient</Label>
             <Input
-              type="number"
-              step="0.01"
-              value={coef}
-              onChange={e => setCoef(+e.target.value)}
+              type="text"
+              inputMode="decimal"
+              value={coefInput}
+              onChange={e => setCoefInput(e.target.value)}
             />
+            <p className="text-sm text-muted-foreground mt-1">
+            </p>
           </div>
         </div>
 
@@ -113,18 +153,16 @@ export default function App() {
             ) : symbol ? (
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <dt className="text-sm text-muted-foreground">Volume:</dt>
-                <dd className="text-lg font-medium">
-                  {volumeFormatter.format(volume)}
-                </dd>
+                <dd className="text-lg font-medium">{intFormatter.format(volume)}</dd>
 
                 <dt className="text-sm text-muted-foreground">NATR×coef:</dt>
-                <dd className="text-lg font-medium">{formatPercent(thrCoef)}</dd>
+                <dd className="text-lg font-medium">{percentFormatter(thrCoef)}</dd>
 
                 <dt className="text-sm text-muted-foreground">NATR×1×0.85:</dt>
-                <dd className="text-lg font-medium">{formatPercent(thr85)}</dd>
+                <dd className="text-lg font-medium">{percentFormatter(thr85)}</dd>
 
                 <dt className="text-sm text-muted-foreground">NATR×2×0.85:</dt>
-                <dd className="text-lg font-medium">{formatPercent(thr2_85)}</dd>
+                <dd className="text-lg font-medium">{percentFormatter(thr2_85)}</dd>
               </dl>
             ) : (
               <p className="italic">Select ticker above</p>
@@ -149,6 +187,8 @@ export default function App() {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         history={history}
+        onDelete={handleDelete}
+        onClearAll={handleClearAll}
       />
     </div>
   )

@@ -1,12 +1,16 @@
 import React from 'react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetClose
+} from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
-// Форматтеры (повторяем из App.tsx)
-const intFormatter = new Intl.NumberFormat('ru-RU', {
-  maximumFractionDigits: 0
-})
+// Переносим форматтеры из App для единообразия
+const intFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
 const percentFormatter = (v: number) => `${v.toFixed(4)}%`
 
 export interface HistoryEntry {
@@ -24,25 +28,39 @@ export interface HistoryEntry {
 export default function HistoryDrawer({
   open,
   onClose,
-  history
+  history,
+  onDelete,
+  onClearAll
 }: {
   open: boolean
-  onClose: () => void
+  onClose(): void
   history: HistoryEntry[]
+  onDelete(ts: number): void
+  onClearAll(): void
 }) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent side="left" className="max-w-sm p-4 space-y-4">
-        <SheetHeader>
+        <SheetHeader className="flex justify-between items-center">
           <SheetTitle>History</SheetTitle>
-          <SheetClose asChild>
-            <Button variant="ghost">✕</Button>
-          </SheetClose>
+          <div className="flex space-x-2">
+            <Button variant="ghost" onClick={onClearAll}>
+              Clear All
+            </Button>
+          </div>
         </SheetHeader>
 
         {history.length === 0 && <p>No entries yet.</p>}
-        {history.map((h, i) => (
-          <Card key={i}>
+
+        {history.map(h => (
+          <Card key={h.ts} className="relative">
+            <Button
+              variant="ghost"
+              className="absolute top-2 right-2"
+              onClick={() => onDelete(h.ts)}
+            >
+              ✕
+            </Button>
             <CardContent className="space-y-1">
               <small className="text-xs text-muted-foreground">
                 {new Date(h.ts).toLocaleString()}

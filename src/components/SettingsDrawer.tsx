@@ -17,7 +17,6 @@ export default function SettingsDrawer({
       <SheetContent side="right" className="max-w-sm p-4">
         <SheetHeader>
           <SheetTitle>Settings</SheetTitle>
-          <SheetClose asChild><Button variant="ghost">✕</Button></SheetClose>
         </SheetHeader>
         <div className="space-y-4 mt-4">
           <div><Label>L (bars)</Label>
