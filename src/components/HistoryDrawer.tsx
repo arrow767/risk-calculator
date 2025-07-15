@@ -51,9 +51,6 @@ export default function HistoryDrawer({
             </Button>
           </div>
           <SheetClose asChild>
-            <Button variant="ghost" size="sm">
-              <X className="h-4 w-4" />
-            </Button>
           </SheetClose>
         </SheetHeader>
 
