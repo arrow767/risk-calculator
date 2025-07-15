@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, { useEffect, useState } from 'react'
 import TickerDropdown from './components/TickerDropdown'
 import SettingsDrawer from './components/SettingsDrawer'
@@ -15,9 +16,16 @@ const intFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }
 const percentFormatter = (v: number) => `${v.toFixed(4)}%`
 
 export default function App() {
-  const [symbol, setSymbol] = useState('')
-  const [riskInput, setRiskInput] = useState(() => localStorage.getItem('risk') || '10000')
-  const [coefInput, setCoefInput] = useState(() => localStorage.getItem('coef') || '1.1')
+  // теперь загружаем symbol из localStorage
+  const [symbol, setSymbol] = useState(
+    () => localStorage.getItem('symbol') || ''
+  )
+  const [riskInput, setRiskInput] = useState(
+    () => localStorage.getItem('risk') || '10000'
+  )
+  const [coefInput, setCoefInput] = useState(
+    () => localStorage.getItem('coef') || '1.1'
+  )
   const [params, setParams] = useState<IndicatorParams>(() => {
     const s = localStorage.getItem('params')
     return s
@@ -34,6 +42,11 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [notif, setNotif] = useState<string | null>(null)
 
+  // persist symbol whenever он меняется
+  useEffect(() => {
+    localStorage.setItem('symbol', symbol)
+  }, [symbol])
+
   // авто‑скрытие уведомления
   useEffect(() => {
     if (!notif) return
@@ -41,7 +54,7 @@ export default function App() {
     return () => clearTimeout(t)
   }, [notif])
 
-  // persist
+  // persist другие поля
   useEffect(() => localStorage.setItem('risk', riskInput), [riskInput])
   useEffect(() => localStorage.setItem('coef', coefInput), [coefInput])
   useEffect(() => localStorage.setItem('params', JSON.stringify(params)), [params])
@@ -64,7 +77,7 @@ export default function App() {
   const thr2_85 = thrCoef * 2 * params.multiplier85
   const volume = thrCoef ? (risk * 100) / thrCoef : 0
 
-  // save — теперь добавляем запись в начало массива
+  // save — добавляем запись в начало массива
   const saveEntry = () => {
     if (!symbol) return
     const entry: HistoryEntry = {
