@@ -10,9 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Menu, Settings as SettingsIcon } from 'lucide-react'
 
-// форматтер для целых чисел
+// форматтеры
 const intFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
-// форматтер процентов
 const percentFormatter = (v: number) => `${v.toFixed(4)}%`
 
 export default function App() {
@@ -35,7 +34,7 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [notif, setNotif] = useState<string | null>(null)
 
-  // авто‑скрытие уведомления
+  // авто-скрытие уведомления
   useEffect(() => {
     if (!notif) return
     const t = setTimeout(() => setNotif(null), 3000)
@@ -58,8 +57,8 @@ export default function App() {
   }, [symbol, params])
 
   // расчёты
-  const risk = parseFloat(riskInput) || 0
-  const coef = parseFloat(coefInput) || 0
+  const risk = parseFloat(riskInput.replace(',', '.')) || 0
+  const coef = parseFloat(coefInput.replace(',', '.')) || 0
   const thrCoef = natr * coef
   const thr85 = thrCoef * params.multiplier85
   const thr2_85 = thrCoef * 2 * params.multiplier85
@@ -128,6 +127,7 @@ export default function App() {
               onChange={e => setRiskInput(e.target.value)}
             />
             <p className="text-sm text-muted-foreground mt-1">
+              Формат: {intFormatter.format(risk)}
             </p>
           </div>
           <div>
@@ -139,6 +139,7 @@ export default function App() {
               onChange={e => setCoefInput(e.target.value)}
             />
             <p className="text-sm text-muted-foreground mt-1">
+              Формат: {coefInput || '—'}
             </p>
           </div>
         </div>
