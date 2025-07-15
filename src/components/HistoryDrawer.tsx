@@ -47,9 +47,6 @@ export default function HistoryDrawer({
             <Button variant="ghost" onClick={onClearAll}>
               Clear All
             </Button>
-            <SheetClose asChild>
-              <Button variant="ghost">✕</Button>
-            </SheetClose>
           </div>
         </SheetHeader>
 

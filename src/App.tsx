@@ -34,7 +34,7 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [notif, setNotif] = useState<string | null>(null)
 
-  // авто-скрытие уведомления
+  // авто‑скрытие уведомления
   useEffect(() => {
     if (!notif) return
     const t = setTimeout(() => setNotif(null), 3000)
@@ -64,7 +64,7 @@ export default function App() {
   const thr2_85 = thrCoef * 2 * params.multiplier85
   const volume = thrCoef ? (risk * 100) / thrCoef : 0
 
-  // save
+  // save — теперь добавляем запись в начало массива
   const saveEntry = () => {
     if (!symbol) return
     const entry: HistoryEntry = {
@@ -78,7 +78,7 @@ export default function App() {
       thr2_85,
       volume
     }
-    setHistory([...history, entry])
+    setHistory([entry, ...history])
     setNotif('Entry saved')
   }
 
