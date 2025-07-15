@@ -127,7 +127,6 @@ export default function App() {
               onChange={e => setRiskInput(e.target.value)}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              Формат: {intFormatter.format(risk)}
             </p>
           </div>
           <div>
@@ -139,7 +138,6 @@ export default function App() {
               onChange={e => setCoefInput(e.target.value)}
             />
             <p className="text-sm text-muted-foreground mt-1">
-              Формат: {coefInput || '—'}
             </p>
           </div>
         </div>
