@@ -14,15 +14,33 @@ import { Menu, Settings as SettingsIcon } from 'lucide-react'
 const intFormatter = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 })
 const percentFormatter = (v: number) => `${v.toFixed(4)}%`
 
+// утилита: добавить число в «последние», уникально, макс 3
+function pushRecent(val: number, list: number[], max = 3) {
+  if (!isFinite(val) || val === 0) return list
+  const next = [val, ...list.filter(v => v !== val)]
+  return next.slice(0, max)
+}
+
 export default function App() {
   const [symbol, setSymbol] = useState(() => localStorage.getItem('symbol') || '')
   const [riskInput, setRiskInput] = useState(() => localStorage.getItem('risk') || '10000')
   const [coefInput, setCoefInput] = useState(() => localStorage.getItem('coef') || '1.1')
   const [params, setParams] = useState<IndicatorParams>(() => {
     const p = localStorage.getItem('params')
-    return p
-      ? JSON.parse(p)
-      : { L: 300, k: 1.0, limitMul: 10.0 }
+    return p ? JSON.parse(p) : { L: 300, k: 1.0, limitMul: 10.0 }
+  })
+
+  // пресеты для быстрого тоггла L (ниже инпутов)
+  const [lOptions, setLOptions] = useState<[number, number]>(() => {
+    try { return JSON.parse(localStorage.getItem('lOptions') || '[100,300]') } catch { return [100, 300] }
+  })
+
+  // последние значения risk / coef (кнопки под инпутами)
+  const [recentRisks, setRecentRisks] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem('recentRisks') || '[]') } catch { return [] }
+  })
+  const [recentCoefs, setRecentCoefs] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem('recentCoefs') || '[]') } catch { return [] }
   })
 
   const [thr, setThr] = useState(0)
@@ -36,11 +54,15 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [notif, setNotif] = useState<string | null>(null)
 
+  // persist
   useEffect(() => { localStorage.setItem('symbol', symbol) }, [symbol])
   useEffect(() => { localStorage.setItem('risk', riskInput) }, [riskInput])
   useEffect(() => { localStorage.setItem('coef', coefInput) }, [coefInput])
   useEffect(() => { localStorage.setItem('params', JSON.stringify(params)) }, [params])
   useEffect(() => { localStorage.setItem('history', JSON.stringify(history)) }, [history])
+  useEffect(() => { localStorage.setItem('lOptions', JSON.stringify(lOptions)) }, [lOptions])
+  useEffect(() => { localStorage.setItem('recentRisks', JSON.stringify(recentRisks)) }, [recentRisks])
+  useEffect(() => { localStorage.setItem('recentCoefs', JSON.stringify(recentCoefs)) }, [recentCoefs])
 
   useEffect(() => {
     if (!notif) return
@@ -81,6 +103,11 @@ export default function App() {
       volume
     }
     setHistory([entry, ...history])
+
+    // обновляем списки последних значений (по факту использования)
+    setRecentRisks(prev => pushRecent(risk, prev))
+    setRecentCoefs(prev => pushRecent(coef, prev))
+
     setNotif('Entry saved')
   }
 
@@ -92,6 +119,8 @@ export default function App() {
     setHistory([])
     setNotif('History cleared')
   }
+
+  const selectL = (L: number) => setParams(p => ({ ...p, L }))
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,7 +154,22 @@ export default function App() {
               value={riskInput}
               onChange={e => setRiskInput(e.target.value)}
             />
+            {recentRisks.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {recentRisks.map(v => (
+                  <Button
+                    key={`risk-${v}`}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRiskInput(String(v))}
+                  >
+                    {intFormatter.format(v)}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
+
           <div>
             <Label>Coefficient</Label>
             <Input
@@ -134,7 +178,43 @@ export default function App() {
               value={coefInput}
               onChange={e => setCoefInput(e.target.value)}
             />
+            {recentCoefs.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {recentCoefs.map(v => (
+                  <Button
+                    key={`coef-${v}`}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCoefInput(String(v))}
+                  >
+                    {v.toFixed(2)}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Quick L (bars) toggle */}
+        <div className="space-y-2">
+          <Label>Quick L (bars)</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {[lOptions[0], lOptions[1]].map((Lval, i) => {
+              const active = params.L === Lval
+              return (
+                <Button
+                  key={`Lopt-${i}-${Lval}`}
+                  variant={active ? 'default' : 'outline'}
+                  onClick={() => selectL(Lval)}
+                  className="w-full"
+                  size="sm"
+                >
+                  L = {Lval}
+                </Button>
+              )
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">Current L: {params.L}</p>
         </div>
 
         <Card>
@@ -179,6 +259,8 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         params={params}
         setParams={setParams}
+        lOptions={lOptions}
+        setLOptions={setLOptions}
       />
       <HistoryDrawer
         open={historyOpen}
